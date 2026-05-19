@@ -1,12 +1,18 @@
+import { clerkMiddleware } from "@clerk/express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import { FRONTEND_URL } from "./src/config/index.js";
-import { PORT } from "./src/config/index.js";
-import { connectDB } from "./src/config/db.config.js";
-import authRoutes from "./src/routes/auth.route.js";
 
-connectDB();
+import { FRONTEND_URL } from "./src/config/index.js";
+
+import { errorHandler } from "./src/middlewares/error.middleware.js";
+
+import authRoutes from "./src/routes/auth.route.js";
+import itemRoutes from "./src/routes/item.route.js";
+import orderRoutes from "./src/routes/order.route.js";
+import shopRoutes from "./src/routes/shop.route.js";
+import userRoutes from "./src/routes/user.route.js";
+import webhookRouter from "./src/routes/webhook.route.js";
 
 const app = express();
 app.use(
@@ -16,32 +22,20 @@ app.use(
   }),
 );
 
+app.use(clerkMiddleware());
+app.use("/webhook", webhookRouter);
+
 app.use(cookieParser());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/shop", shopRoutes);
+app.use("/api/v1/item", itemRoutes);
+app.use("/api/v1/order", orderRoutes);
 
-app.get('/api/auth/test',(req, res)=>{
-   res.json({
-    success : true,
-    message : "Auth route is working successfully"
-   })
-})
-
-// Global Error Handler
-app.use((err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  res.status(statusCode).json({
-    success: false,
-    message: err.message || "Internal Server Error",
-    stack: process.env.NODE_ENV === "production" ? null : err.stack,
-  });
-});
-
-app.listen(PORT, () => {
-  console.log('Server is running on http://localhost:3000')
-})
+app.use(errorHandler);
 
 export default app;
